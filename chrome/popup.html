@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body {
+            width: 500px;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .section {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #333;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #1a73e8;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #logSection {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            line-height: 1.4;
+        }
+        .log-error {
+            color: #ff4444;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-item {
+            display: flex;
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        .result-label {
+            font-weight: 500;
+            width: 100px;
+            color: #666;
+        }
+        .result-value {
+            flex: 1;
+        }
+    </style>
+     <!-- <script>
+        // bcrypt 구현을 직접 포함
+        (function(window) {
+            const bcrypt = {
+                hashSync: function(password, salt) {
+                    console.log('bcrypt hashSync called with:', {
+                        passwordLength: password?.length,
+                        salt: salt
+                    });
+
+                    // salt 형식 검증
+                    if (!salt || typeof salt !== 'string') {
+                        throw new Error("Invalid salt");
+                    }
+
+                    // salt 파싱
+                    const parts = salt.split('$');
+                    if (parts.length < 3) {
+                        throw new Error("Invalid salt format");
+                    }
+
+                    const version = parts[1];
+                    const rounds = parts[2];
+                    const rawSalt = parts[3] || '';
+
+                    // 해시 생성
+                    let hash = password + '_' + rawSalt;
+                    for (let i = 0; i < parseInt(rounds); i++) {
+                        hash = btoa(hash).replace(/=/g, '');
+                    }
+
+                    return `$${version}$${rounds}$${hash}`;
+                }
+            };
+
+            // 전역 객체에 bcrypt 추가
+            window.bcrypt = bcrypt;
+            console.log('bcrypt initialized:', !!window.bcrypt);
+        })(window);
+    </script> -->
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <h2>API 인증 설정</h2>
+            <div class="input-group">
+                <label for="clientId">클라이언트 ID</label>
+                <input 
+                    type="text" 
+                    id="clientId" 
+                    placeholder="네이버 API 클라이언트 ID 입력" 
+                />
+                <label for="clientSecret">클라이언트 시크릿</label>
+                <input 
+                    type="password" 
+                    id="clientSecret" 
+                    placeholder="네이버 API 클라이언트 시크릿 입력" 
+                />
+                <button id="saveApiKey">API 키 저장</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>상품 정보 크롤링</h2>
+            <div class="input-group">
+                <button id="crawlBtn" disabled>현재 페이지 크롤링</button>
+                <p class="help-text">* API 키를 먼저 저장해주세요</p>
+            </div>
+        </div>
+
+        <div id="resultSection" class="section" style="display: none">
+            <h2>크롤링 결과</h2>
+            <div id="result" class="result-container"></div>
+            <button id="registerProduct">스마트스토어에 상품 등록</button>
+        </div>
+
+        <div class="section">
+            <h2>실행 로그</h2>
+            <div id="logSection"></div>
+        </div>
+
+        <div id="loadingSection" class="loading" style="display: none">
+            <div class="loading-spinner"></div>
+            <p>처리 중입니다...</p>
+        </div>
+    </div>
+
+    <script src="bcrypt.js"></script>
+    <script src="auth.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
