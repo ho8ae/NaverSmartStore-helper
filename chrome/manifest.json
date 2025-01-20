@@ -1,19 +1,30 @@
 {
   "manifest_version": 3,
-  "name": "스마트스토어 자동등록",
+  "name": "SmartStore Auto Register",
   "version": "1.0",
+  "description": "Automatic product registration for Naver SmartStore",
   "permissions": [
-    "storage",
     "activeTab",
-    "scripting"
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://*.dongmyo.com/*",
+    "*://*.api.commerce.naver.com/*",
+    "http://localhost:3000/*",
+    "http://localhost:5432/*"
   ],
   "action": {
     "default_popup": "popup.html"
   },
-  "host_permissions": [
-    "https://api.commerce.naver.com/*"
-  ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.dongmyo.com/*"],
+      "js": ["content.js"]
+    }
+  ]
 }
