@@ -164,3 +164,28 @@ button:disabled {
   border-radius: 3px;
   font-size: 12px;
 }
+/* popup.css */
+.form {
+  transition: all 0.3s ease;
+}
+
+.status-message {
+  transition: opacity 0.3s ease;
+}
+
+.progress {
+  transition: width 0.3s ease;
+}
+
+/* 성공/실패 메시지 스타일 */
+.success-message {
+  color: #4CAF50;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.error-message {
+  color: #f44336;
+  font-weight: bold;
+  margin-top: 10px;
+}

@@ -172,12 +172,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
       updateStatus("Crawling product...", 30);
 
-      // URL 유효성 검사
+      
+
+      // URL 유효성 검사 - 도메인 체크 추가
       const url = new URL(productUrl.value);
+      if (!url.hostname.includes("domeggook.com")) {
+        // 예시로 도매꾹 도메인 체크
+        throw new Error("Invalid product URL. Please enter a valid URL.");
+      }
+
       const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       });
+
+      // 이전 크롤링 데이터 초기화
+      resetCrawlingForm();
 
       updateStatus("Initiating crawling...", 40);
 
@@ -255,27 +265,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // 스마트스토어 등록
   productRegisterButton.addEventListener("click", async () => {
     try {
-      updateStatus("Preparing product data...", 30);
-
-      // 수정된 데이터 수집
-      const productData = {
-        title: productTitle.value,
-        price: parseInt(productPrice.value),
-        stockQuantity: parseInt(productStock.value),
-        origin: productOrigin.value,
-        images: Array.from(productImages.querySelectorAll("input")).map(
-          (input) => input.value,
-        ),
-        options: Array.from(
-          productOptions.querySelectorAll(".option-item"),
-        ).map((item) => ({
-          name: item.querySelector('input[type="text"]').value,
-          stock: parseInt(item.querySelector('input[type="number"]').value),
-        })),
-      };
-
       updateStatus("Registering product...", 50);
       const token = await getStoredToken();
+      const data = await chrome.storage.local.get(["crawledData"]);
 
       const response = await fetch(
         "http://localhost:3000/api/products/register",
@@ -285,7 +277,9 @@ document.addEventListener("DOMContentLoaded", function () {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ productData }),
+          body: JSON.stringify({
+            productData: data.crawledData,
+          }),
         },
       );
 
@@ -294,12 +288,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (result.success) {
         updateStatus("Product registered successfully!", 100);
 
-        // 성공 메시지 표시 후 폼 초기화
+        // 성공 메시지를 잠시 표시한 후 폼 초기화
         setTimeout(() => {
-          crawledDataForm.style.display = "none";
-          productUrl.value = "";
-          productRegisterButton.disabled = true; // registerButton을 productRegisterButton로 변경
-          updateStatus("Ready", 0);
+          resetCrawlingForm();
         }, 2000);
       } else {
         throw new Error(result.message);
@@ -336,6 +327,20 @@ document.addEventListener("DOMContentLoaded", function () {
       console.error("Auth check failed:", error);
     }
   }
+
+  // 크롤링 완료 후 폼 초기화 함수
+  function resetCrawlingForm() {
+    productUrl.value = ""; // URL 입력 필드 초기화
+    crawledDataForm.style.display = "none"; // 크롤링 데이터 폼 숨기기
+    productTitle.value = "";
+    productPrice.value = "";
+    productStock.value = "999";
+    productOrigin.value = "";
+    productImages.innerHTML = "";
+    productOptions.innerHTML = "";
+    updateStatus("Ready for next product", 0); // 상태 메시지 초기화
+  }
+
   // 크롤링 데이터 표시 함수
   function displayCrawledData(data) {
     crawledDataForm.style.display = "block";
