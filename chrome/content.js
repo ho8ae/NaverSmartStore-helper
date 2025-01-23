@@ -41,18 +41,18 @@ function getOptions() {
     optionElements.forEach(element => {
         const optionText = element.textContent;
         if (!optionText.includes('판매종료')) {
-            // 재고 수량 추출
-            const stockMatch = optionText.match(/\((\d+)\)/);
-            const stock = stockMatch ? parseInt(stockMatch[1]) : 0;
             const name = optionText.split('(')[0].trim();
             
+            // 재고가 있는 옵션이면 기본값으로 999 설정
+            // 판매 가능한 옵션만 표시되므로, disabled가 아닌 옵션은 재고가 있다고 가정
             options.push({
                 name: name,
-                stock: stock
+                stock: 999  // 기본 재고 값으로 999 설정
             });
         }
     });
 
+    console.log("Extracted options:", options); // 디버깅을 위한 로그 추가
     return options;
 }
 

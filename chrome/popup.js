@@ -69,8 +69,6 @@ document.addEventListener("DOMContentLoaded", function () {
         password: password.value,
       };
 
-      console.log("Sending login request:", loginData); // 디버깅용
-
       const response = await fetch("http://localhost:3000/api/auth/login", {
         method: "POST",
         headers: {
@@ -79,10 +77,7 @@ document.addEventListener("DOMContentLoaded", function () {
         body: JSON.stringify(loginData),
       });
 
-      console.log("Response status:", response.status); // 디버깅용
-
       const data = await response.json();
-      console.log("Login response:", data); // 디버깅용
 
       if (data.success) {
         // 토큰과 사용자 정보 저장
@@ -93,12 +88,6 @@ document.addEventListener("DOMContentLoaded", function () {
           user,
           isLoggedIn: true,
         });
-
-        console.log("Token saved:", token); // 디버깅용
-
-        // API 설정 폼으로 이동하기 전에 저장된 토큰 확인
-        const savedToken = await getStoredToken();
-        console.log("Saved token verified:", savedToken); // 디버깅용
 
         updateStatus("Login successful!", 100);
 
@@ -113,7 +102,6 @@ document.addEventListener("DOMContentLoaded", function () {
         throw new Error(data.message || "Login failed");
       }
     } catch (error) {
-      console.error("Login error:", error); // 디버깅용
       updateStatus("Login failed: " + error.message, 0);
     }
   });
@@ -172,8 +160,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       updateStatus("Crawling product...", 30);
 
-      
-
       // URL 유효성 검사 - 도메인 체크 추가
       const url = new URL(productUrl.value);
       if (!url.hostname.includes("domeggook.com")) {
@@ -206,7 +192,6 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         async function (response) {
           if (chrome.runtime.lastError) {
-            console.error("Chrome runtime error:", chrome.runtime.lastError);
             throw new Error("Failed to communicate with page");
           }
 
@@ -220,14 +205,12 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             displayCrawledData(response.data);
-            console.log("Crawled data:", response.data);
           } else {
             throw new Error(response?.message || "Crawling failed");
           }
         },
       );
     } catch (error) {
-      console.error("Crawling error:", error);
       updateStatus("Crawling error: " + error.message, 0);
     }
   });
@@ -269,6 +252,15 @@ document.addEventListener("DOMContentLoaded", function () {
       const token = await getStoredToken();
       const data = await chrome.storage.local.get(["crawledData"]);
 
+      // 상세 로깅 추가
+      console.group("Product Registration Debug");
+      console.log("Token:", token);
+      console.log("Crawled Data:", data.crawledData);
+      console.log(
+        "API Endpoint:",
+        "http://localhost:3000/api/products/register",
+      );
+
       const response = await fetch(
         "http://localhost:3000/api/products/register",
         {
@@ -284,18 +276,21 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       const result = await response.json();
+      console.log("API Response:", result);
+      console.groupEnd();
 
       if (result.success) {
         updateStatus("Product registered successfully!", 100);
-
-        // 성공 메시지를 잠시 표시한 후 폼 초기화
-        setTimeout(() => {
-          resetCrawlingForm();
-        }, 2000);
+        setTimeout(resetCrawlingForm, 2000);
       } else {
-        throw new Error(result.message);
+        throw new Error(result.message || "등록 실패");
       }
     } catch (error) {
+      console.error("Registration Error Details:", {
+        message: error.message,
+        stack: error.stack,
+        response: error.response,
+      });
       updateStatus("Registration failed: " + error.message, 0);
     }
   });
@@ -325,6 +320,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     } catch (error) {
       console.error("Auth check failed:", error);
+      console.error("Registration error:", error);
+      updateStatus("Registration failed: " + error.message, 0);
     }
   }
 
@@ -351,39 +348,132 @@ document.addEventListener("DOMContentLoaded", function () {
     productStock.value = data.stockQuantity || 999;
     productOrigin.value = data.origin || "수입산";
 
-    // 이미지 목록 표시
+    // 이미지 처리
     productImages.innerHTML = "";
-    if (data.images && data.images.length > 0) {
-      data.images.forEach((imgUrl, index) => {
-        const div = document.createElement("div");
-        div.className = "image-item";
-        div.innerHTML = `
-        <input type="text" class="form-control form-control-sm" 
-               value="${imgUrl}" data-index="${index}" />
-        ${index === 0 ? "(대표이미지)" : ""}
-      `;
-        productImages.appendChild(div);
-      });
-    }
+    const images = data.images || [];
+    images.forEach((imgUrl, index) => {
+      const div = document.createElement("div");
+      div.className = "image-item";
+      div.innerHTML = `
+            <input type="text" class="form-control form-control-sm" 
+                   value="${imgUrl}" data-index="${index}" />
+            ${index === 0 ? "(대표이미지)" : ""}
+        `;
+      productImages.appendChild(div);
+    });
 
-    // 옵션 정보 표시
+    // 옵션 처리
     productOptions.innerHTML = "";
-    if (data.options && data.options.length > 0) {
-      data.options.forEach((option, index) => {
-        const div = document.createElement("div");
-        div.className = "option-item";
-        div.innerHTML = `
+    const options = data.options || [];
+
+    // 중복 옵션 제거
+    const uniqueOptions = Array.from(
+      new Set(options.map((opt) => opt.name)),
+    ).map((name, index) => ({
+      name,
+      stockQuantity: 999,
+    }));
+
+    const formattedData = {
+      originProduct: {
+        statusType: "SALE",
+        saleType: "NEW",
+        leafCategoryId: "50000803",
+        name: data.title,
+        detailContent: data.description,
+        images: {
+          representativeImage: {
+            url: images[0],
+          },
+          optionalImages: [
+            {
+              url: images[0],
+            },
+          ],
+        },
+        salePrice: parseInt(data.price),
+        stockQuantity: 999,
+        // 배송 정보 추가
+        deliveryInfo: {
+          deliveryType: "DELIVERY",
+          deliveryAttributeType: "NORMAL",
+          deliveryFee: {
+            deliveryFeeType: "FREE",
+            baseFee: 0,
+          },
+          claimDeliveryInfo: {
+            returnDeliveryFee: 3000,
+            exchangeDeliveryFee: 3000,
+          },
+          deliveryCompany: "CJGLS",
+        },
+        detailAttribute: {
+          productInfoProvidedNotice: {
+            productInfoProvidedNoticeType: "WEAR",
+            wear: {
+              material: "상세페이지 참조",
+              color: "상세페이지 참조",
+              size: "상세페이지 참조",
+              manufacturer: "상세페이지 참조",
+              caution: "상세페이지 참조",
+              packDate: "2024-01",
+              warrantyPolicy: "상세페이지 참조",
+              afterServiceDirector: "010-3710-7457",
+            },
+          },
+          optionInfo:
+            uniqueOptions.length > 0
+              ? {
+                  optionCombinationSortType: "CREATE",
+                  optionCombinationGroupNames: {
+                    optionGroupName1: "옵션",
+                  },
+                  optionCombinations: uniqueOptions.map((opt, index) => ({
+                  
+                    optionName1: opt.name,
+                    stockQuantity: 999,
+                    price: 0,
+                    usable: true,
+                  })),
+                  useStockManagement: true,
+                }
+              : undefined,
+          originAreaInfo: {
+            originAreaCode: "0200037",
+            content: data.origin || "수입산",
+            plural: false,
+            importer: "주식회사 수입사",
+          },
+
+          afterServiceInfo: {
+            afterServiceTelephoneNumber: "010-3710-7457",
+            afterServiceGuideContent: "구매자 단순변심 반품 가능",
+          },
+        },
+      },
+      smartstoreChannelProduct: {
+        naverShoppingRegistration: true,
+        channelProductDisplayStatusType: "ON",
+      },
+    };
+
+    // UI 업데이트
+    uniqueOptions.forEach((option) => {
+      const div = document.createElement("div");
+      div.className = "option-item";
+      div.innerHTML = `
         <div class="option-content">
-          <input type="text" class="form-control form-control-sm" 
-                 value="${option.name}" data-index="${index}" />
-          <input type="number" class="form-control form-control-sm" 
-                 value="${option.stock}" min="0" />
+            <input type="text" class="form-control form-control-sm" 
+                   value="${option.name}" readonly />  
+            <input type="number" class="form-control form-control-sm" 
+                   value="${option.stockQuantity}" min="0" readonly />
         </div>
-        <button class="btn-remove-option" data-index="${index}">×</button>
       `;
-        productOptions.appendChild(div);
-      });
-    }
+      productOptions.appendChild(div);
+    });
+
+    chrome.storage.local.set({ crawledData: formattedData });
+    console.log("Chrome storage data:", formattedData);
   }
 
   function showApiSettingsForm() {
@@ -412,10 +502,10 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       return data.token;
     } catch (error) {
-      console.error("Error getting token:", error);
       return null;
     }
   }
+
   async function showApiSettingsForm() {
     loginForm.style.display = "none";
     registerForm.style.display = "none";
@@ -430,8 +520,6 @@ document.addEventListener("DOMContentLoaded", function () {
         apiStatus.textContent = "Saved API keys loaded";
         apiStatus.className = "status-message success";
       }
-    } catch (error) {
-      console.error("Error loading API keys:", error);
-    }
+    } catch (error) {}
   }
 });
