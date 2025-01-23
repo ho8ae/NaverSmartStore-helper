@@ -6,6 +6,45 @@ export class NaverCommerceAPI {
     this.clientId = clientId;
     this.clientSecret = clientSecret;
     this.baseUrl = "https://api.commerce.naver.com/external";
+
+    // 요청 인터셉터 추가
+    axios.interceptors.request.use((request) => {
+      console.log("요청 설정:", {
+        url: request.url,
+        method: request.method,
+        headers: request.headers,
+        data: request.data ? JSON.stringify(request.data, null, 2) : "No data",
+      });
+      return request;
+    });
+
+    // 응답 인터셉터 추가
+    axios.interceptors.response.use(
+      (response) => {
+        console.log("응답 성공:", {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          data: response.data,
+        });
+        return response;
+      },
+      (error) => {
+        console.error("응답 실패:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          error: error.response?.data,
+          validationErrors: error.response?.data?.invalidInputs?.map(
+            (item) => ({
+              field: item.name,
+              message: item.message,
+              type: item.type,
+            }),
+          ),
+        });
+        throw error;
+      },
+    );
   }
 
   generateSignature(timestamp) {
@@ -56,20 +95,22 @@ export class NaverCommerceAPI {
   async uploadImage(imageUrl) {
     try {
       const token = await this.getAccessToken();
+      console.log("이미지 URL:", imageUrl);
 
       // 이미지 다운로드
       const imageResponse = await axios.get(imageUrl, {
         responseType: "arraybuffer",
       });
 
-      // FormData 생성
+      // FormData 설정
       const formData = new FormData();
-      const blob = new Blob([imageResponse.data], { type: "image/jpeg" });
-      formData.append("imageFiles", blob, "image.jpg");
+      const imageBlob = new Blob([imageResponse.data], { type: "image/jpeg" });
+      formData.append("imageFiles", imageBlob, "image.jpg");
 
-      console.log("Uploading image:", imageUrl);
+      console.log("FormData 확인:", formData);
 
-      const response = await axios.post(
+      // 이미지 업로드 요청
+      const uploadResponse = await axios.post(
         `${this.baseUrl}/v1/product-images/upload`,
         formData,
         {
@@ -80,53 +121,38 @@ export class NaverCommerceAPI {
         },
       );
 
-      console.log("Image upload response:", response.data);
-      return response.data.images[0].url;
+      console.log("업로드 응답:", uploadResponse.data);
+      return uploadResponse.data.images[0].url;
     } catch (error) {
-      console.error("Image upload error:", error);
+      console.error("이미지 업로드 실패:", error);
       throw error;
     }
   }
 
-  // services/naver-commerce.js
   async registerProduct(productData) {
     try {
       const token = await this.getAccessToken();
-      console.log("Starting image uploads with structured data...");
+      const imageUrl = productData.originProduct.images.representativeImage.url;
+      const uploadedImageUrl = await this.uploadImage(imageUrl);
 
-      // 이미지 데이터 검증
-      if (!productData.originProduct?.images?.representativeImage?.url) {
-        throw new Error("대표 이미지가 필요합니다.");
-      }
-
-      // 대표 이미지 업로드
-      const mainImageUrl = await this.uploadImage(
-        productData.originProduct.images.representativeImage.url,
-      );
-
-      // 추가 이미지 업로드 (있는 경우)
-      const optionalImageUrls = await Promise.all(
-        (productData.originProduct.images.optionalImages || []).map((img) =>
-          this.uploadImage(img.url),
-        ),
-      );
-
-      // 업로드된 이미지로 데이터 구성
-      const updatedProductData = {
-        ...productData,
+      const formattedData = {
         originProduct: {
           ...productData.originProduct,
+          detailAttribute: {
+            ...productData.originProduct.detailAttribute,
+            minorPurchasable: false, // 필수 필드 추가
+          },
           images: {
-            representativeImage: { url: mainImageUrl },
-            optionalImages: optionalImageUrls.map((url) => ({ url })),
+            representativeImage: { url: uploadedImageUrl },
+            optionalImages: [{ url: uploadedImageUrl }],
           },
         },
+        smartstoreChannelProduct: productData.smartstoreChannelProduct,
       };
 
-      // 상품 등록 요청
       const response = await axios.post(
         `${this.baseUrl}/v2/products`,
-        updatedProductData,
+        formattedData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -137,24 +163,30 @@ export class NaverCommerceAPI {
 
       return response.data;
     } catch (error) {
-      console.error("Product registration error:", error);
+      console.error("상품 등록 실패:", error);
       throw error;
     }
   }
 
-  formatProductData(productData) {
+  async formatProductData(productData) {
+    const hasOptions = productData.options?.length > 0;
+
     return {
       originProduct: {
-        statusType: "WAIT",
+        statusType: "SALE",
         saleType: "NEW",
-        leafCategoryId: "50000803", // 의류 카테고리
+        leafCategoryId: "50000803",
         name: productData.title,
         detailContent: productData.description,
         images: {
           representativeImage: {
             url: productData.images[0],
           },
-          optionalImages: productData.images.slice(1).map((url) => ({ url })),
+          optionalImages: [
+            {
+              url: productData.images[0],
+            },
+          ],
         },
         salePrice: productData.price,
         stockQuantity: productData.stockQuantity || 999,
@@ -164,6 +196,10 @@ export class NaverCommerceAPI {
           deliveryFee: {
             deliveryFeeType: "FREE",
             baseFee: 0,
+          },
+          claimDeliveryInfo: {
+            returnDeliveryFee: 3000,
+            exchangeDeliveryFee: 3000,
           },
         },
         detailAttribute: {
@@ -175,6 +211,22 @@ export class NaverCommerceAPI {
             afterServiceTelephoneNumber: "1234-5678",
             afterServiceGuideContent: "구매자 단순변심 반품 가능",
           },
+          optionInfo: hasOptions
+            ? {
+                optionCombinationSortType: "CREATE",
+                optionCombinationGroupNames: {
+                  optionGroupName1: "옵션",
+                },
+                optionCombinations: productData.options.map((opt, index) => ({
+                  id: index + 1,
+                  optionName1: opt.name,
+                  stockQuantity: 999,
+                  price: 0,
+                  usable: true,
+                })),
+                useStockManagement: true,
+              }
+            : undefined,
           originAreaInfo: {
             originAreaCode: "0200037",
             content: productData.origin || "수입산",
