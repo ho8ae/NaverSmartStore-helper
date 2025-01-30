@@ -3,24 +3,38 @@
   "name": "SmartStore Auto Register",
   "version": "0.0.2",
   "description": "도매 사이트의 상품 정보를 크롤링하여 네이버 스마트스토어에 자동으로 등록하는 시스템",
+
   "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["*://*.domaemall.com/*"],
+
+  "host_permissions": ["*://*.domaemall.com/*", "http://localhost:3000/*"],
+
   "background": {
     "service_worker": "background.js"
   },
+
   "content_scripts": [
     {
       "matches": ["*://*.domaemall.com/*"],
-      "js": ["categoryMapper.js", "content.js"]
+      "js": [
+        "constants/selectors.js",
+        "utils/parser.js",
+        "domain/crawler.js",
+        "content.js"
+      ]
     }
   ],
+
   "web_accessible_resources": [
     {
-      "resources": ["category.csv"],
+      "resources": ["constants/*", "utils/*", "domain/*", "api/*", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ],
+
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "views/popup.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   }
 }
