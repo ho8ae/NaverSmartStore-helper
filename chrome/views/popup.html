@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h2>SmartStore Auto Register</h2>
+
+      <!-- 로그인 폼 -->
+      <div id="loginForm" class="form">
+        <h3>Login</h3>
+        <input type="email" id="email" placeholder="Email" />
+        <input type="password" id="password" placeholder="Password" />
+        <button id="loginButton">Login</button>
+        <p class="switch-text">
+          Don't have an account? <a href="#" id="showRegister">Register</a>
+        </p>
+      </div>
+
+      <!-- 회원가입 폼 -->
+      <div id="registerForm" class="form" style="display: none">
+        <h3>Register</h3>
+        <input type="email" id="regEmail" placeholder="Email" />
+        <input type="password" id="regPassword" placeholder="Password" />
+        <button id="signupButton">Register</button>
+        <p class="switch-text">
+          Already have an account? <a href="#" id="showLogin">Login</a>
+        </p>
+      </div>
+
+      <!-- API 설정 폼 -->
+      <div id="apiSettingsForm" class="form" style="display: none">
+        <h3>API Settings</h3>
+        <input type="text" id="apiKey" placeholder="API Key" />
+        <input type="text" id="secretKey" placeholder="Secret Key" />
+        <button id="verifyApiButton">Verify API Keys</button>
+        <div id="apiStatus" class="status-message"></div>
+      </div>
+
+      <!-- 크롤링 폼 -->
+      <div id="crawlingForm" class="form" style="display: none">
+        <h3>Product Registration</h3>
+        <input type="url" id="productUrl" placeholder="Product URL" />
+        <button id="crawlButton">Crawl Product</button>
+
+        <!-- 크롤링 결과 폼 -->
+        <div id="crawledDataForm" style="display: none" class="mt-3">
+          <div class="form-group">
+            <label>상품명</label>
+            <input type="text" id="productTitle" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>판매가</label>
+            <input type="number" id="productPrice" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>재고수량</label>
+            <input
+              type="number"
+              id="productStock"
+              class="form-control"
+              value="999"
+            />
+          </div>
+          <div class="form-group">
+            <label>원산지</label>
+            <input type="text" id="productOrigin" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>이미지 목록</label>
+            <div id="productImages" class="image-list"></div>
+          </div>
+          <div class="form-group">
+            <label>옵션 정보</label>
+            <div id="productOptions" class="options-list"></div>
+          </div>
+        </div>
+
+        <!-- 버튼 그룹 추가 -->
+        <div class="button-group">
+          <!-- <button id="editButton" class="btn btn-primary">
+            상품 정보 수정
+          </button> -->
+          <button id="productRegisterButton">Register to SmartStore</button>
+        </div>
+
+        <div class="status">
+          <div id="progressBar" class="progress-bar">
+            <div class="progress"></div>
+          </div>
+          <div id="status" class="status-message">Ready</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script tpye="module" src="../utils/storage.js"></script>
+    <script tpye="module" src="../api/auth.js"></script>
+    <script tpye="module" src="../api/product.js"></script>
+    <script tpye="module" src="../domain/auth.js"></script>
+    <script tpye="module" src="../domain/product.js"></script>
+    <script tpye="module" src="popup.js"></script>
+  </body>
+</html>

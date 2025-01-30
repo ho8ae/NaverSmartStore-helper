@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>상품 정보 수정</title>
+    <style>
+        body { width: 960px; padding: 20px; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-control { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .image-item, .option-item { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .button-group { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        textarea { min-height: 200px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>상품 정보 수정</h2>
+        <form id="editForm">
+            <div class="section">
+                <h3>기본 정보</h3>
+                <div class="form-group">
+                    <label>상품명</label>
+                    <input type="text" id="name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>판매가</label>
+                    <input type="number" id="salePrice" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>재고수량</label>
+                    <input type="number" id="stockQuantity" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>원산지</label>
+                    <input type="text" id="originArea" class="form-control">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>이미지</h3>
+                <div id="imageList"></div>
+                <button type="button" class="btn" id="addImageBtn">이미지 추가</button>
+            </div>
+
+            <div class="section">
+                <h3>옵션</h3>
+                <div id="optionList"></div>
+                <button type="button" class="btn" id="addOptionBtn">옵션 추가</button>
+            </div>
+
+            <div class="section">
+                <h3>상품 설명</h3>
+                <div class="form-group">
+                    <textarea id="detailContent" class="form-control"></textarea>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>배송 정보</h3>
+                <div class="form-group">
+                    <label>배송비</label>
+                    <input type="number" id="deliveryFee" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>반품배송비</label>
+                    <input type="number" id="returnFee" class="form-control">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn" id="cancelBtn">취소</button>
+                <button type="button" class="btn btn-primary" id="saveBtn">저장</button>
+            </div>
+        </form>
+    </div>
+    <script src="edit.js"></script>
+</body>
+</html>
